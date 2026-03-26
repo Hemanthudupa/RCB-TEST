@@ -1,0 +1,24 @@
+---
+description: API contracts and validation rules.
+globs:
+  - "server.js"
+  - "src/**/*.js"
+---
+
+## API validation rules
+
+- Employee login validates `employeeId` exists in `data/employees.csv`.
+- Admin login validates credentials from `data/admins.csv`.
+- Interest submission:
+  - `ticketCount` must be 1 or 2.
+  - `matchIds` must be subset of hardcoded matches.
+  - Store one row per `(employeeId, matchId)` in `data/interests.csv` (dedupe on re-submit).
+
+## Draw rules
+
+- Draw is per match and ticket-capacity aware.
+- Eligible pool = interests for match minus any employeeId present in any `data/winners/*.csv`.
+- Allocate by shuffled order; pick entry only if `ticketCount <= remainingTickets`.
+- Winners are persisted to `data/winners/<matchId>.csv`.
+- Prefer guarding against re-draw if winners file already exists and has rows.
+

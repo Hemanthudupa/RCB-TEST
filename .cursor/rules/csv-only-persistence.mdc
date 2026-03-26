@@ -1,0 +1,21 @@
+---
+description: CSV-only persistence rules for this repo.
+globs:
+  - "**/*.js"
+  - "**/*.html"
+  - "**/*.css"
+---
+
+## CSV-only persistence
+
+- All persistence must be in CSV files under `data/`.
+- Do not introduce any database, ORM, or external storage system.
+- `data/interests.csv` is the source of employee interest submissions.
+- Winners must be stored **match-wise** under `data/winners/<matchId>.csv`.
+- An employee who appears in any winners file is globally ineligible for other matches (“win once only”).
+
+## Safety
+
+- Prefer rewrite-with-dedupe over append-only when data can be re-submitted (e.g., employee resubmits interest).
+- Use a simple in-process lock for CSV writes to avoid corruption.
+

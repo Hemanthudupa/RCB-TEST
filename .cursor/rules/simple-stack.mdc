@@ -1,0 +1,15 @@
+---
+description: Keep stack simple (HTML/CSS/vanilla JS + Node/Express).
+globs:
+  - "**/*.js"
+  - "**/*.html"
+  - "**/*.css"
+---
+
+## Stack constraints
+
+- Frontend must be plain **HTML/CSS/vanilla JS** (no React/Vue/Angular).
+- Backend must be **Node.js + Express** only.
+- Prefer minimal dependencies; avoid adding packages unless required for core functionality.
+- Keep all pages under `public/employee/` and `public/admin/` and serve them statically.
+

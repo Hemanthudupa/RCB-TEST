@@ -1,0 +1,15 @@
+{
+  "name": "rcb-ticket-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CSV-only IPL tickets app (Employee + Admin) using Node/Express and static HTML/CSS/JS.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
+

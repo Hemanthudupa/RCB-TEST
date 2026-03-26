@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Winners | Admin</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="brand">
+        <h1 id="title">Winners</h1>
+        <div class="pill" id="pill">Loading…</div>
+      </div>
+
+      <div class="card">
+        <div class="topbar">
+          <a class="link" href="/admin/matches.html">← Back</a>
+          <button class="btn secondary" id="logoutBtn">Logout</button>
+        </div>
+
+        <div>
+          <a class="link" id="downloadLink" href="#">Download CSV (Excel)</a>
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Employee ID</th>
+              <th>Tickets</th>
+              <th>Picked at</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div id="msg"></div>
+      </div>
+    </div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const matchId = params.get("matchId");
+      const titleEl = document.getElementById("title");
+      const pillEl = document.getElementById("pill");
+      const rowsEl = document.getElementById("rows");
+      const msg = document.getElementById("msg");
+      const downloadLink = document.getElementById("downloadLink");
+      const logoutBtn = document.getElementById("logoutBtn");
+
+      function setMsg(text, type) {
+        msg.className = type || "";
+        msg.textContent = text || "";
+      }
+
+      async function load() {
+        if (!matchId) {
+          setMsg("Missing matchId", "error");
+          return;
+        }
+        downloadLink.href = `/api/admin/matches/${encodeURIComponent(matchId)}/winners/download`;
+
+        const res = await fetch(`/api/admin/matches/${encodeURIComponent(matchId)}/winners`);
+        if (res.status === 401) {
+          window.location.href = "/admin/login.html";
+          return;
+        }
+        const data = await res.json();
+        if (!res.ok) {
+          setMsg(data.error || "Failed to load winners", "error");
+          titleEl.textContent = "Winners";
+          pillEl.textContent = matchId;
+          return;
+        }
+
+        titleEl.textContent = `Winners — ${data.match.title}`;
+        pillEl.textContent = `${data.match.matchId} • ${data.match.venue}`;
+
+        rowsEl.innerHTML = "";
+        const winners = data.winners || [];
+        for (const w of winners) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${w.employeeId}</td><td>${w.ticketCount}</td><td>${w.pickedAt || ""}</td>`;
+          rowsEl.appendChild(tr);
+        }
+
+        setMsg(winners.length ? "" : "No winners in this match yet.", winners.length ? "" : "hint");
+      }
+
+      async function logout() {
+        await fetch("/api/logout", { method: "POST" }).catch(() => {});
+        window.location.href = "/admin/login.html";
+      }
+
+      logoutBtn.addEventListener("click", logout);
+      load().catch(() => setMsg("Failed to load winners page.", "error"));
+    </script>
+  </body>
+</html>
+

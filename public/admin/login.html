@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login | IPL Tickets</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="brand">
+        <h1>Admin Console — IPL Tickets</h1>
+        <div class="pill">CSV-only • Match-wise winners</div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div>
+            <label for="username">Username</label>
+            <input id="username" type="text" placeholder="admin" autocomplete="off" />
+          </div>
+          <div>
+            <label for="password">Password</label>
+            <input id="password" type="password" placeholder="••••••••" />
+            <div class="hint">Credentials are read from <code>data/admins.csv</code>.</div>
+          </div>
+          <button id="loginBtn" class="btn">Login</button>
+          <div id="msg"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const usernameEl = document.getElementById("username");
+      const passwordEl = document.getElementById("password");
+      const btn = document.getElementById("loginBtn");
+      const msg = document.getElementById("msg");
+
+      function setMsg(text, type) {
+        msg.className = type || "";
+        msg.textContent = text || "";
+      }
+
+      async function login() {
+        setMsg("", "");
+        btn.disabled = true;
+        try {
+          const username = usernameEl.value.trim();
+          const password = passwordEl.value.trim();
+          const res = await fetch("/api/admin/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) return setMsg(data.error || "Login failed", "error");
+          window.location.href = "/admin/matches.html";
+        } catch {
+          setMsg("Network error. Try again.", "error");
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      btn.addEventListener("click", login);
+      passwordEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") login();
+      });
+    </script>
+  </body>
+</html>
+

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee Login | IPL Tickets</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="brand">
+        <h1>Emmvee x RCB — Employee Tickets</h1>
+        <div class="pill">Interest-based • Not guaranteed</div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div>
+            <label for="employeeId">Employee ID</label>
+            <input id="employeeId" type="text" placeholder="Enter your employee ID" autocomplete="off" />
+            <div class="hint">Login is validated against the employee list.</div>
+          </div>
+
+          <button id="loginBtn" class="btn">Login</button>
+
+          <div id="msg" class=""></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const employeeIdEl = document.getElementById("employeeId");
+      const btn = document.getElementById("loginBtn");
+      const msg = document.getElementById("msg");
+
+      function setMsg(text, type) {
+        msg.className = type || "";
+        msg.textContent = text || "";
+      }
+
+      async function login() {
+        setMsg("", "");
+        btn.disabled = true;
+        try {
+          const employeeId = employeeIdEl.value.trim();
+          const res = await fetch("/api/employee/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ employeeId }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            if (data && data.error === "ALREADY_SUBMITTED") {
+              setMsg("You are ALREADY_SUBMITTED your request.", "error");
+            } else {
+              setMsg(data.error || "Login failed", "error");
+            }
+            return;
+          }
+          window.location.href = "/employee/form.html";
+        } catch (e) {
+          setMsg("Network error. Try again.", "error");
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      btn.addEventListener("click", login);
+      employeeIdEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") login();
+      });
+    </script>
+  </body>
+</html>
+

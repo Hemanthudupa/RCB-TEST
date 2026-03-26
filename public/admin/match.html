@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Match | Admin</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="brand">
+        <h1 id="title">Match</h1>
+        <div class="pill" id="pill">Loading…</div>
+      </div>
+
+      <div class="card">
+        <div class="topbar">
+          <a class="link" href="/admin/matches.html">← Back</a>
+          <button class="btn secondary" id="logoutBtn">Logout</button>
+        </div>
+
+        <div class="row two">
+          <div>
+            <div style="font-weight: 800; font-size: 15px;">Eligible employees</div>
+            <div class="hint" id="eligibleHint">Loading…</div>
+            <table class="table" style="margin-top: 10px;">
+              <thead>
+                <tr>
+                  <th>Employee ID</th>
+                  <th>Tickets</th>
+                </tr>
+              </thead>
+              <tbody id="eligibleRows"></tbody>
+            </table>
+          </div>
+
+          <div>
+            <div style="font-weight: 800; font-size: 15px;">Draw winners</div>
+            <div class="hint">Set max tickets for this match and run Random once.</div>
+            <div style="height: 10px;"></div>
+
+            <label for="capacity">Max tickets (capacity)</label>
+            <input id="capacity" type="number" min="1" step="1" value="20" />
+            <div class="hint">Enter a whole number (example: 20).</div>
+            <div style="height: 12px;"></div>
+
+            <button class="btn" id="randomBtn">Random</button>
+            <div id="msg"></div>
+
+            <div style="height: 14px;"></div>
+            <div>
+              <a class="link" id="downloadLink" href="#" style="display:none;">Download winners (CSV for Excel)</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const matchId = params.get("matchId");
+      const titleEl = document.getElementById("title");
+      const pillEl = document.getElementById("pill");
+      const eligibleRowsEl = document.getElementById("eligibleRows");
+      const eligibleHintEl = document.getElementById("eligibleHint");
+      const capacityEl = document.getElementById("capacity");
+      const randomBtn = document.getElementById("randomBtn");
+      const msg = document.getElementById("msg");
+      const downloadLink = document.getElementById("downloadLink");
+      const logoutBtn = document.getElementById("logoutBtn");
+
+      function setMsg(text, type) {
+        msg.className = type || "";
+        msg.textContent = text || "";
+      }
+
+      async function loadEligible() {
+        setMsg("", "");
+        const res = await fetch(`/api/admin/matches/${encodeURIComponent(matchId)}/eligible`);
+        if (res.status === 401) {
+          window.location.href = "/admin/login.html";
+          return;
+        }
+        const data = await res.json();
+        if (!res.ok) {
+          setMsg(data.error || "Failed to load eligible list", "error");
+          return;
+        }
+        titleEl.textContent = data.match.title;
+        pillEl.textContent = `${data.match.matchId} • ${data.match.venue}`;
+        eligibleRowsEl.innerHTML = "";
+        eligibleHintEl.textContent = `${(data.eligible || []).length} eligible employee(s)`;
+        for (const e of data.eligible || []) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${e.employeeId}</td><td>${e.ticketCount}</td>`;
+          eligibleRowsEl.appendChild(tr);
+        }
+
+        downloadLink.style.display = "inline-block";
+        downloadLink.href = `/api/admin/matches/${encodeURIComponent(matchId)}/winners/download`;
+      }
+
+      async function draw() {
+        setMsg("", "");
+        randomBtn.disabled = true;
+        try {
+          const capacityTickets = Math.floor(Number(capacityEl.value));
+          if (!Number.isFinite(capacityTickets) || capacityTickets <= 0) {
+            setMsg("Please enter a valid capacity (1 or more).", "error");
+            return;
+          }
+          const res = await fetch(`/api/admin/matches/${encodeURIComponent(matchId)}/draw`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ capacityTickets }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            setMsg(data.error || "Draw failed", "error");
+            return;
+          }
+          setMsg(`Winners picked: ${(data.winners || []).length}. Remaining tickets: ${data.remainingTickets}`, "success");
+          window.location.href = `/admin/winners.html?matchId=${encodeURIComponent(matchId)}`;
+        } catch {
+          setMsg("Network error. Try again.", "error");
+        } finally {
+          randomBtn.disabled = false;
+        }
+      }
+
+      async function logout() {
+        await fetch("/api/logout", { method: "POST" }).catch(() => {});
+        window.location.href = "/admin/login.html";
+      }
+
+      logoutBtn.addEventListener("click", logout);
+      randomBtn.addEventListener("click", draw);
+
+      if (!matchId) {
+        setMsg("Missing matchId", "error");
+      } else {
+        loadEligible().catch(() => setMsg("Failed to load eligible list.", "error"));
+      }
+    </script>
+  </body>
+</html>
+

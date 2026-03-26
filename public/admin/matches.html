@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Matches | Admin</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="brand">
+        <h1>Admin — Matches</h1>
+        <div class="pill">Pick winners match-wise</div>
+      </div>
+
+      <div class="card">
+        <div class="topbar">
+          <div>
+            <div style="font-weight: 800; font-size: 15px;">RCB Bengaluru matches</div>
+            <div class="hint">Eligible count excludes anyone who already won a ticket in any match.</div>
+          </div>
+          <button class="btn secondary" id="logoutBtn">Logout</button>
+        </div>
+
+        <table class="table" id="tbl">
+          <thead>
+            <tr>
+              <th>Match</th>
+              <th>Interested</th>
+              <th>Eligible</th>
+              <th>Winners generated</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div id="msg"></div>
+      </div>
+    </div>
+
+    <script>
+      const rowsEl = document.getElementById("rows");
+      const msg = document.getElementById("msg");
+      const logoutBtn = document.getElementById("logoutBtn");
+
+      function setMsg(text, type) {
+        msg.className = type || "";
+        msg.textContent = text || "";
+      }
+
+      async function load() {
+        setMsg("", "");
+        const res = await fetch("/api/admin/matches");
+        if (res.status === 401) {
+          window.location.href = "/admin/login.html";
+          return;
+        }
+        const data = await res.json();
+        rowsEl.innerHTML = "";
+        for (const m of data.matches || []) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>
+              <div style="font-weight:800">${m.title}</div>
+              <div class="hint">${m.dateTime} • ${m.venue} • ${m.matchId}</div>
+            </td>
+            <td>${m.interestedCount}</td>
+            <td>${m.eligibleCount}</td>
+            <td>${m.winnersGenerated ? "Yes" : "No"}</td>
+            <td><a class="link" href="/admin/match.html?matchId=${encodeURIComponent(m.matchId)}">Open</a></td>
+          `;
+          rowsEl.appendChild(tr);
+        }
+      }
+
+      async function logout() {
+        await fetch("/api/logout", { method: "POST" }).catch(() => {});
+        window.location.href = "/admin/login.html";
+      }
+
+      logoutBtn.addEventListener("click", logout);
+      load().catch(() => setMsg("Failed to load matches.", "error"));
+    </script>
+  </body>
+</html>
+

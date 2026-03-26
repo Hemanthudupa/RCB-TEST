@@ -1,0 +1,12 @@
+---
+description: Where matches are defined.
+globs:
+  - "src/matches.js"
+---
+
+## Matches definition
+
+- The 5 Bengaluru matches are hardcoded in `src/matches.js`.
+- `matchId` values must be stable and safe as filenames (letters/numbers/underscore/dash).
+- If match dates/venues need updating, update only `src/matches.js` and keep IDs unchanged.
+

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ticket Interest Form | IPL Tickets</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="brand">
+        <h1>Ticket Interest Form</h1>
+        <div class="pill" id="whoami">Not logged in</div>
+      </div>
+
+      <div class="card">
+        <div class="topbar">
+          <div>
+            <div style="font-weight: 800; font-size: 15px;">Are you interested in IPL Matches?</div>
+            <div class="hint">Submit your interest. Tickets are limited and selection is random.</div>
+          </div>
+          <button class="btn secondary" id="logoutBtn">Logout</button>
+        </div>
+
+        <div>
+          <div style="font-weight: 700; margin-bottom: 6px;">Terms</div>
+          <ul class="terms">
+            <li>This is an interest-based application, not a guaranteed allotment.</li>
+            <li>Each person can receive tickets for only one match (if selected).</li>
+            <li>You may request 1 or 2 tickets only.</li>
+            <li>Random selection will be used due to limited availability.</li>
+            <li>Business-critical work must take priority.</li>
+            <li>Managers must ensure no critical operations are affected.</li>
+          </ul>
+        </div>
+
+        <div style="height: 14px;"></div>
+
+        <div class="row two">
+          <div>
+            <div style="font-weight: 700; margin-bottom: 6px;">Number of tickets</div>
+            <label style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+              <input type="radio" name="ticketCount" value="1" />
+              <span style="color: var(--text); font-size: 14px;">1 Ticket</span>
+            </label>
+            <label style="display:flex; gap:10px; align-items:center;">
+              <input type="radio" name="ticketCount" value="2" />
+              <span style="color: var(--text); font-size: 14px;">2 Tickets</span>
+            </label>
+          </div>
+
+          <div>
+            <div style="font-weight: 700; margin-bottom: 6px;">Select match(es) (Bengaluru)</div>
+            <div id="matches" class="matches"></div>
+          </div>
+        </div>
+
+        <div style="height: 14px;"></div>
+        <button class="btn" id="submitBtn">Submit Interest</button>
+        <div id="msg" class=""></div>
+      </div>
+    </div>
+
+    <script>
+      const whoami = document.getElementById("whoami");
+      const matchesEl = document.getElementById("matches");
+      const submitBtn = document.getElementById("submitBtn");
+      const msg = document.getElementById("msg");
+      const logoutBtn = document.getElementById("logoutBtn");
+
+      function setMsg(text, type) {
+        msg.className = type || "";
+        msg.textContent = text || "";
+      }
+
+      function getTicketCount() {
+        const checked = document.querySelector('input[name="ticketCount"]:checked');
+        return checked ? Number(checked.value) : null;
+      }
+
+      function getSelectedMatchIds() {
+        return Array.from(document.querySelectorAll('input[name="match"]:checked')).map((x) => x.value);
+      }
+
+      async function loadMe() {
+        const res = await fetch("/api/me");
+        if (!res.ok) {
+          window.location.href = "/employee/login.html";
+          return;
+        }
+        const data = await res.json();
+        whoami.textContent = `Logged in: ${data.employeeId}`;
+      }
+
+      async function redirectIfAlreadySubmitted() {
+        const res = await fetch("/api/employee/submission-status");
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        if (data && data.submitted) {
+          window.location.href = "/employee/submitted.html";
+        }
+      }
+
+      async function loadMatches() {
+        const res = await fetch("/api/matches");
+        const data = await res.json();
+        matchesEl.innerHTML = "";
+        for (const m of data.matches || []) {
+          const wrap = document.createElement("label");
+          wrap.className = "match";
+          wrap.innerHTML = `
+            <input type="checkbox" name="match" value="${m.matchId}" />
+            <div class="meta">
+              <div class="title">${m.title}</div>
+              <div class="sub">${m.dateTime} • ${m.venue}</div>
+              <div class="sub">Match ID: ${m.matchId}</div>
+            </div>
+          `;
+          matchesEl.appendChild(wrap);
+        }
+      }
+
+      async function submit() {
+        setMsg("", "");
+        const ticketCount = getTicketCount();
+        const matchIds = getSelectedMatchIds();
+
+        if (!ticketCount) return setMsg("Please select number of tickets (1 or 2).", "error");
+        if (matchIds.length === 0) return setMsg("Please select at least one match.", "error");
+
+        submitBtn.disabled = true;
+        try {
+          const res = await fetch("/api/interests", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ticketCount, matchIds }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            if (data && data.error === "ALREADY_SUBMITTED") return setMsg("Already submitted.", "error");
+            return setMsg(data.error || "Submit failed", "error");
+          }
+          window.location.href = "/employee/submitted.html";
+        } catch {
+          setMsg("Network error. Try again.", "error");
+        } finally {
+          submitBtn.disabled = false;
+        }
+      }
+
+      async function logout() {
+        await fetch("/api/logout", { method: "POST" }).catch(() => {});
+        window.location.href = "/employee/login.html";
+      }
+
+      submitBtn.addEventListener("click", submit);
+      logoutBtn.addEventListener("click", logout);
+
+      loadMe().then(redirectIfAlreadySubmitted).then(loadMatches).catch(() => {
+        window.location.href = "/employee/login.html";
+      });
+    </script>
+  </body>
+</html>
+
